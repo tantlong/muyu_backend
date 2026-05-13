@@ -35,8 +35,8 @@ def check_commit_interval(user_sn: str, is_auto: bool = False) -> bool:
 
 
 def check_commit_count(count: int, is_auto: bool = False) -> int:
-    """校验提交次数上限：手动40次，自动10次"""
-    max_count = 10 if is_auto else 40
+    """校验提交次数上限：手动50次，自动20次"""
+    max_count = 20 if is_auto else 50
     return min(count, max_count)
 
 
