@@ -14,6 +14,7 @@ class User(Base):
     merit_count = Column(BigInteger, default=0)
     province = Column(String(50))
     status = Column(SmallInteger, default=1)
+    last_active_at = Column(DateTime, default=None)  # 最后活跃时间，用于登录态校验与续期
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
 

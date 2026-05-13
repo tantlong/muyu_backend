@@ -1,4 +1,5 @@
 from sqlalchemy.orm import Session
+from datetime import datetime
 import models
 from utils import generate_user_sn
 
@@ -34,7 +35,8 @@ def create_user(db: Session, openid=None, phone=None, nickname=None, avatar=None
         avatar=avatar or "http://localhost:8000/static/default_avatar.png",
         merit_count=0,
         province=province,
-        status=1
+        status=1,
+        last_active_at=datetime.utcnow()  # 注册即视为首次活跃
     )
     db.add(user)
     db.commit()
@@ -118,3 +120,56 @@ def get_nationwide_ranking(db: Session, limit: int = 100):
     return db.query(models.User).filter(
         models.User.status == 1
     ).order_by(models.User.merit_count.desc()).limit(limit).all()
+
+
+# 获取个人排行榜（按功德数降序，只返回正常用户）
+def get_person_ranking(db: Session, limit: int = 100):
+    return db.query(models.User).filter(
+        models.User.status == 1
+    ).order_by(models.User.merit_count.desc()).limit(limit).all()
+
+
+# 获取省份排行榜（按省份总功德降序，聚合查询）
+def get_province_ranking_aggregated(db: Session):
+    from sqlalchemy import func as sa_func
+    results = db.query(
+        models.User.province,
+        sa_func.sum(models.User.merit_count).label('total_merit')
+    ).filter(
+        models.User.status == 1,
+        models.User.province.isnot(None),
+        models.User.province != ''
+    ).group_by(models.User.province).order_by(
+        sa_func.sum(models.User.merit_count).desc()
+    ).all()
+    return results
+
+
+# 获取用户在全国的排名
+def get_user_nationwide_rank(db: Session, merit_count: int) -> int:
+    count = db.query(models.User).filter(
+        models.User.status == 1,
+        models.User.merit_count > merit_count
+    ).count()
+    return count + 1
+
+
+# 获取用户在所在省份的排名
+def get_user_province_rank(db: Session, province: str, merit_count: int) -> int:
+    if not province:
+        return 0
+    count = db.query(models.User).filter(
+        models.User.status == 1,
+        models.User.province == province,
+        models.User.merit_count > merit_count
+    ).count()
+    return count + 1
+
+
+# 获取全平台总功德
+def get_total_merit(db: Session) -> int:
+    from sqlalchemy import func as sa_func
+    result = db.query(sa_func.coalesce(sa_func.sum(models.User.merit_count), 0)).filter(
+        models.User.status == 1
+    ).scalar()
+    return result

@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS users (
     merit_count BIGINT DEFAULT 0 COMMENT '累计功德数（核心字段）',
     province VARCHAR(50) NULL COMMENT '所在省份（用于省份排行榜）',
     status TINYINT DEFAULT 1 COMMENT '账号状态：1正常，0禁用',
+    last_active_at DATETIME NULL DEFAULT NULL COMMENT '最后活跃时间，用于登录态校验与续期',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间',
     KEY idx_merit_count (merit_count),

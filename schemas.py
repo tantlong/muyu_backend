@@ -48,6 +48,12 @@ class WechatBindRequest(BaseModel):
     code: str = Field(..., description="微信授权code")
 
 
+# -------------------------- 基础用户凭证（依赖注入复用） --------------------------
+class BaseUserSn(BaseModel):
+    """从请求体提取 userSn 的基类（供 FastAPI 依赖注入使用）"""
+    userSn: str = Field(..., description="用户唯一标识（token）")
+
+
 # -------------------------- 功德提交 --------------------------
 class KnockSubmit(BaseModel):
     """功德敲击提交请求模型"""
