@@ -147,6 +147,8 @@ def app_login(data: schemas.AppUserLogin, db: Session = Depends(get_db)):
                 "autoFreq": setting.auto_freq if setting else 1000,
                 "autoDuration": setting.auto_duration if setting else 0,
                 "knockText": setting.knock_text if setting else "阿弥陀佛",
+                "isShowBase": setting.is_show_base if setting else 1,
+                "baseSkin": setting.base_skin if setting else "default",
             }
         }
     }
@@ -197,6 +199,8 @@ def wechat_login(data: schemas.WechatAuthCode, db: Session = Depends(get_db)):
                 "autoFreq": setting.auto_freq if setting else 1000,
                 "autoDuration": setting.auto_duration if setting else 0,
                 "knockText": setting.knock_text if setting else "阿弥陀佛",
+                "isShowBase": setting.is_show_base if setting else 1,
+                "baseSkin": setting.base_skin if setting else "default",
             }
         }
     }
@@ -307,6 +311,8 @@ def get_user_info(
                 "autoFreq": setting.auto_freq if setting else 1000,
                 "autoDuration": setting.auto_duration if setting else 0,
                 "knockText": setting.knock_text if setting else "阿弥陀佛",
+                "isShowBase": setting.is_show_base if setting else 1,
+                "baseSkin": setting.base_skin if setting else "default",
             }
         }
     }
@@ -337,6 +343,8 @@ def save_settings(
             "autoFreq": setting.auto_freq,
             "autoDuration": setting.auto_duration,
             "knockText": setting.knock_text,
+            "isShowBase": setting.is_show_base,
+            "baseSkin": setting.base_skin,
         }
     }
 

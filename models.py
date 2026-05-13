@@ -33,6 +33,8 @@ class UserSetting(Base):
     auto_freq = Column(Integer, default=1000)
     auto_duration = Column(Integer, default=0)
     knock_text = Column(String(100), default="阿弥陀佛")
+    is_show_base = Column(SmallInteger, default=1)  # 是否显示木鱼底座：1开启，0关闭
+    base_skin = Column(String(50), default="default")  # 木鱼底座皮肤标识
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
 

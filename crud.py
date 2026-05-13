@@ -98,6 +98,8 @@ def save_user_setting(db: Session, user_id: int, **kwargs):
         'autoFreq': 'auto_freq',
         'autoDuration': 'auto_duration',
         'knockText': 'knock_text',
+        'isShowBase': 'is_show_base',  # 是否显示木鱼底座
+        'baseSkin': 'base_skin',  # 木鱼底座皮肤标识
     }
     for camel_key, value in kwargs.items():
         if value is not None and camel_key in field_map:

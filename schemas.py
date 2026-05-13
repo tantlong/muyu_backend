@@ -73,6 +73,8 @@ class UserSettingSave(BaseModel):
     isVibrate: Optional[int] = None
     autoFreq: Optional[int] = None
     autoDuration: Optional[int] = None
+    isShowBase: Optional[int] = None  # 是否显示木鱼底座：1开启，0关闭
+    baseSkin: Optional[str] = None  # 木鱼底座皮肤标识
 
 
 # -------------------------- 接口响应模型 --------------------------
