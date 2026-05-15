@@ -7,17 +7,18 @@ import os
 import models, schemas, crud
 from database import SessionLocal, engine
 from utils import send_verify_code, verify_code, get_wechat_openid, check_commit_interval, check_commit_count
+from resources import router as resources_router  # 引入资源路由
 
-# 自动创建数据库表（首次启动执行，后续不重复创建）
+# 自动创建数据库表
 models.Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="木鱼功德系统",
-    description="本地开发版（适配微信测试号、短信模拟）",
+    description="本地开发版",
     version="1.0.0"
 )
 
-# CORS跨域配置（允许小程序/UniApp前端访问）
+# 跨域
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -26,8 +27,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 挂载静态资源目录
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# ===================== 正确顺序 =====================
+# 1. 先挂载静态资源（必须最先）
+# app.mount("/static", StaticFiles(directory="static"), name="static")
+
+# 2. 再挂载子路由
+app.include_router(resources_router)
+# =====================================================
 
 
 # 依赖项：获取数据库会话
@@ -41,27 +47,22 @@ def get_db():
 
 # -------------------------- 登录态校验与续期核心 --------------------------
 def validate_and_renew_user(user: models.User, db: Session):
-    """校验用户状态、登录态过期，并自动续期 last_active_at"""
     if not user:
         raise HTTPException(status_code=401, detail="登录态失效，请重新登录")
-    # 强制失效：账号禁用(status=0)或锁定(status=2)
     if user.status != 1:
         status_msg = {0: "账号已被禁用，请联系客服", 2: "账号已被锁定，请联系客服"}.get(user.status, "账号状态异常")
         raise HTTPException(status_code=403, detail=status_msg)
-    # 过期条件：连续 N 天无操作
     expire_days = int(os.getenv("TOKEN_EXPIRE_DAYS", 7))
     if user.last_active_at:
         now = datetime.utcnow()
         if now - user.last_active_at > timedelta(days=expire_days):
             raise HTTPException(status_code=401, detail="登录态过期，请重新登录")
-    # 自动续期：更新最后活跃时间为当前时间
     user.last_active_at = datetime.utcnow()
     db.commit()
     return user
 
 
 def validate_user_no_renew(user: models.User):
-    """仅校验用户状态和登录态过期，但不续期 last_active_at（排行榜等只读接口使用）"""
     if not user:
         raise HTTPException(status_code=401, detail="登录态失效，请重新登录")
     if user.status != 1:
@@ -75,7 +76,6 @@ def validate_user_no_renew(user: models.User):
     return True
 
 
-# FastAPI 依赖：从查询参数获取 userSn，校验并续期（适用于 GET/POST query param 场景）
 def get_current_user(
     userSn: str = Query(..., description="用户登录凭证（userSn）"),
     db: Session = Depends(get_db)
@@ -84,13 +84,11 @@ def get_current_user(
     return validate_and_renew_user(user, db)
 
 
-# FastAPI 依赖：从请求体获取 userSn，校验并续期（适用于 POST body 场景）
 def get_current_user_from_body(data: schemas.BaseUserSn, db: Session = Depends(get_db)):
     user = crud.get_user_by_sn(db, data.userSn)
     return validate_and_renew_user(user, db)
 
 
-# FastAPI 依赖：从查询参数获取 userSn，仅校验不续期（排行榜等只读接口使用）
 def get_current_user_no_renew(
     userSn: str = Query(..., description="用户登录凭证（userSn）"),
     db: Session = Depends(get_db)
@@ -111,19 +109,14 @@ def send_code(data: schemas.PhoneVerifyCode):
 # -------------------------- 手机号登录/注册接口 --------------------------
 @app.post("/api/app-login", summary="手机号登录/注册", response_model=schemas.LoginResponse)
 def app_login(data: schemas.AppUserLogin, db: Session = Depends(get_db)):
-    # 校验验证码
     if not verify_code(data.phone, data.code):
         raise HTTPException(status_code=400, detail="验证码错误")
-    # 查询用户，未注册则创建
     user = crud.get_user_by_phone(db, data.phone)
     if not user:
-        user = crud.create_user(db, phone=data.phone, nickname=f"用户{data.phone[-4:]}")
-    # 登录即更新活跃时间（新用户 create_user 中已设置，此处对已有用户补充）
+        user = crud.create_user(db, phone=data.phone)
     user.last_active_at = datetime.utcnow()
     db.commit()
-    # 获取用户等级
     level = crud.get_level_by_merit(db, user.merit_count)
-    # 获取用户配置
     setting = crud.get_user_setting(db, user.id)
     return {
         "code": 200,
@@ -157,11 +150,9 @@ def app_login(data: schemas.AppUserLogin, db: Session = Depends(get_db)):
 # -------------------------- 微信登录接口 --------------------------
 @app.post("/api/wechat-login", summary="微信登录", response_model=schemas.LoginResponse)
 def wechat_login(data: schemas.WechatAuthCode, db: Session = Depends(get_db)):
-    # 获取微信用户信息
     wechat_info = get_wechat_openid(data.code)
     if not wechat_info.get("openid"):
         raise HTTPException(status_code=400, detail="微信授权失败")
-    # 查询用户，未注册则创建
     user = crud.get_user_by_openid(db, wechat_info["openid"])
     if not user:
         user = crud.create_user(
@@ -170,12 +161,9 @@ def wechat_login(data: schemas.WechatAuthCode, db: Session = Depends(get_db)):
             nickname=wechat_info.get("nickname", "微信用户"),
             avatar=wechat_info.get("avatar")
         )
-    # 登录即更新活跃时间
     user.last_active_at = datetime.utcnow()
     db.commit()
-    # 获取用户等级
     level = crud.get_level_by_merit(db, user.merit_count)
-    # 获取用户配置
     setting = crud.get_user_setting(db, user.id)
     return {
         "code": 200,
@@ -212,7 +200,6 @@ def check_login_status(
     userSn: str = Query(..., description="用户登录凭证（userSn）"),
     db: Session = Depends(get_db)
 ):
-    """APP启动时调用，校验userSn是否仍有效。有效则自动续期。"""
     user = crud.get_user_by_sn(db, userSn)
     if not user:
         return {"code": 401, "msg": "登录态失效", "data": {"isValid": False, "reason": "凭证不存在，请重新登录"}}
@@ -224,7 +211,6 @@ def check_login_status(
         now = datetime.utcnow()
         if now - user.last_active_at > timedelta(days=expire_days):
             return {"code": 401, "msg": "登录态过期", "data": {"isValid": False, "reason": f"连续{expire_days}天未活跃，请重新登录"}}
-    # 有效则自动续期
     user.last_active_at = datetime.utcnow()
     db.commit()
     return {"code": 200, "msg": "登录态有效", "data": {"isValid": True}}
@@ -236,14 +222,11 @@ def wechat_bind(
     data: schemas.WechatBindRequest,
     db: Session = Depends(get_db)
 ):
-    # 使用 body 中的 userSn 进行登录态校验与续期
     user = crud.get_user_by_sn(db, data.userSn)
     validate_and_renew_user(user, db)
-    # 获取微信openid
     wechat_info = get_wechat_openid(data.code)
     if not wechat_info.get("openid"):
         raise HTTPException(status_code=400, detail="微信授权失败")
-    # 执行捆绑
     if crud.bind_wechat(db, data.userSn, wechat_info["openid"]):
         return {"code": 200, "msg": "捆绑成功"}
     raise HTTPException(status_code=400, detail="捆绑失败，该微信号已被捆绑")
@@ -255,16 +238,12 @@ def knock_submit(
     data: schemas.KnockSubmit,
     db: Session = Depends(get_db)
 ):
-    # 使用 body 中的 userSn 进行登录态校验与续期
     user = crud.get_user_by_sn(db, data.userSn)
     validate_and_renew_user(user, db)
-    # 校验提交间隔和次数
     if not check_commit_interval(data.userSn, data.isAuto):
         raise HTTPException(status_code=403, detail="提交过于频繁，请稍后再试")
     valid_count = check_commit_count(data.count, data.isAuto)
-    # 增加功德
     user = crud.add_merit(db, user, valid_count)
-    # 获取等级
     level = crud.get_level_by_merit(db, user.merit_count)
     return {
         "code": 200,
@@ -285,7 +264,6 @@ def get_user_info(
     user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """获取用户信息，自动校验登录态并续期"""
     level = crud.get_level_by_merit(db, user.merit_count)
     setting = crud.get_user_setting(db, user.id)
     return {
@@ -325,7 +303,6 @@ def save_settings(
     user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """保存个性化配置，自动校验登录态并续期"""
     kwargs = {}
     if data:
         kwargs = data.model_dump(exclude_none=True)
@@ -357,7 +334,6 @@ def rank_person(
     user: models.User = Depends(get_current_user_no_renew),
     db: Session = Depends(get_db)
 ):
-    """返回个人排行榜：rank、avatar、nickname、meritCount、province，只返回正常用户"""
     users = crud.get_person_ranking(db, limit)
     ranking_list = []
     for rank, u in enumerate(users, 1):
@@ -380,7 +356,6 @@ def rank_province(
     user: models.User = Depends(get_current_user_no_renew),
     db: Session = Depends(get_db)
 ):
-    """返回：rank、province、meritCount，按省份总功德降序"""
     results = crud.get_province_ranking_aggregated(db)
     province_list = []
     for rank, row in enumerate(results, 1):
@@ -401,7 +376,6 @@ def rank_my(
     user: models.User = Depends(get_current_user_no_renew),
     db: Session = Depends(get_db)
 ):
-    """返回：myRank、myProvinceRank、meritCount、province"""
     my_rank = crud.get_user_nationwide_rank(db, user.merit_count)
     my_province_rank = crud.get_user_province_rank(db, user.province, user.merit_count)
     return {
@@ -421,7 +395,6 @@ def rank_total_merit(
     user: models.User = Depends(get_current_user_no_renew),
     db: Session = Depends(get_db)
 ):
-    """返回：totalMerit"""
     total = crud.get_total_merit(db)
     return {
         "code": 200,
@@ -433,7 +406,6 @@ def rank_total_merit(
 # -------------------------- 功德等级列表接口 --------------------------
 @app.get("/api/levels", summary="获取所有等级配置")
 def get_levels(db: Session = Depends(get_db)):
-    """等级列表为公开接口，不校验登录态"""
     levels = db.query(models.UserLevel).filter(models.UserLevel.status == 1).order_by(models.UserLevel.level).all()
     level_list = []
     for lv in levels:
@@ -458,7 +430,6 @@ def update_nickname(
     user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """更新用户昵称，自动校验登录态并续期"""
     if not nickname or len(nickname) > 50:
         raise HTTPException(status_code=400, detail="昵称长度需在1-50字符之间")
     user.nickname = nickname
@@ -473,7 +444,6 @@ def update_province(
     user: models.User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    """更新用户所在省份，自动校验登录态并续期"""
     user.province = province
     db.commit()
     return {"code": 200, "msg": "更新成功", "data": {"province": province}}
