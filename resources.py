@@ -40,15 +40,33 @@ bg_resources = [
 # ===================== 木鱼资源 =====================
 muyu_resources = [
     {
-        "id": "muyu_01_v1",
-        "name": "经典木鱼",
-        "url": "",
+        "id": "fish_01_v1",
+        "name": "招财木鱼",
+        "url": "http://localhost/static/muyu/fish_01_v1.png",
         "isDefault": True
     },
     {
         "id": "muyu_02_v1",
-        "name": "发财木鱼",
-        "url": "http://localhost/static/muyu/muyu_02_v1.png",
+        "name": "经典款",
+        "url": "http://localhost/static/muyu/fish_02_v1.png",
+        "isDefault": False
+    },
+    {
+        "id": "muyu_03_v1",
+        "name": "花雕款",
+        "url": "http://localhost/static/muyu/fish_03_v1.png",
+        "isDefault": False
+    },
+    {
+        "id": "muyu_04_v1",
+        "name": "简朴款",
+        "url": "http://localhost/static/muyu/fish_04_v1.png",
+        "isDefault": False
+    },
+    {
+        "id": "muyu_05_v1",
+        "name": "梨花木",
+        "url": "http://localhost/static/muyu/fish_05_v1.png",
         "isDefault": False
     }
 ]
@@ -57,9 +75,27 @@ muyu_resources = [
 hammer_resources = [
     {
         "id": "hammer_01_v1",
-        "name": "经典木槌",
-        "url": "",
+        "name": "桃心木槌",
+        "url": "http://localhost/static/hammer/hammer_01_v1.png",
         "isDefault": True
+    },
+    {
+        "id": "hammer_02_v1",
+        "name": "柚木圆白",
+        "url": "http://localhost/static/hammer/hammer_02_v1.png",
+        "isDefault": False
+    },
+    {
+        "id": "hammer_03_v1",
+        "name": "红檀圆白",
+        "url": "http://localhost/static/hammer/hammer_03_v1.png",
+        "isDefault": False
+    },
+    {
+        "id": "hammer_04_v1",
+        "name": "圆头榉木",
+        "url": "http://localhost/static/hammer/hammer_04_v1.png",
+        "isDefault": False
     }
 ]
 
@@ -68,17 +104,40 @@ base_resources = [
     {
         "id": "base_01_v1",
         "name": "经典底座",
-        "url": "",
+        "url": "http://localhost/static/base/zuowei_01_v1.png",
         "isDefault": True
+    },
+    {
+        "id": "base_02_v1",
+        "name": "金叶吉祥",
+        "url": "http://localhost/static/base/zuowei_02_v1.png",
+        "isDefault": False
+    },
+    {
+        "id": "base_03_v1",
+        "name": "金丝绣花",
+        "url": "http://localhost/static/base/zuowei_03_v1.png",
+        "isDefault": False
     }
 ]
 
 # ===================== 音效资源 =====================
 sound_resources = [
     {
-        "id": "sound_01_v1",
-        "name": "经典音效",
-        "url": "",
+        "id": "knock_01_v1",
+        "name": "圆润",
+        "url": "http://localhost/static/sound/knock_01_v1.mp3",
+        "isDefault": True
+    },{
+        "id": "knock_02_v1",
+        "name": "沙哑",
+        "url": "http://localhost/static/sound/knock_02_v1.mp3",
+        "isDefault": True
+    },
+{
+        "id": "knock_03_v1",
+        "name": "低沉",
+        "url": "http://localhost/static/sound/knock_03_v1.mp3",
         "isDefault": True
     }
 ]
