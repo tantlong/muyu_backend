@@ -11,6 +11,7 @@ class User(Base):
     nickname = Column(String(50))
     avatar = Column(String(255))  # 本地：static目录地址，上线：OSS地址
     phone = Column(String(20), unique=True, index=True)  # 手机号，可为空
+    gender = Column(SmallInteger, default=0)  # 性别：0未知，1男，2女（必填，默认0）
     merit_count = Column(BigInteger, default=0)
     province = Column(String(50))
     status = Column(SmallInteger, default=1)
@@ -32,7 +33,7 @@ class UserSetting(Base):
     is_vibrate = Column(SmallInteger, default=1)
     auto_freq = Column(Integer, default=1000)
     auto_duration = Column(Integer, default=0)
-    knock_text = Column(String(100), default="阿弥陀佛")
+    knock_text = Column(String(100), default="功德+1")
     is_show_base = Column(SmallInteger, default=1)  # 是否显示木鱼底座：1开启，0关闭
     base_skin = Column(String(50), default="default")  # 木鱼底座皮肤标识
     created_at = Column(DateTime, default=func.now())

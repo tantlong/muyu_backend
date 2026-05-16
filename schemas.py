@@ -77,6 +77,12 @@ class UserSettingSave(BaseModel):
     baseSkin: Optional[str] = None  # 木鱼底座皮肤标识
 
 
+class BatchUpdateSettings(BaseModel):
+    """批量更新个性化配置（只更新传入的字段）"""
+    userSn: str = Field(..., description="用户登录凭证")
+    settings: Optional[dict] = Field(None, description="要更新的配置项，key为字段名，支持：fishSkin、hammerSkin、knockSound、background、volume、isVibrate、autoFreq、autoDuration、isShowBase、baseSkin")
+
+
 # -------------------------- 接口响应模型 --------------------------
 class LoginResponse(BaseModel):
     """登录/注册响应模型"""

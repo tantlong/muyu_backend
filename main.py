@@ -7,7 +7,7 @@ import os
 import models, schemas, crud
 from database import SessionLocal, engine
 from utils import send_verify_code, verify_code, get_wechat_openid, check_commit_interval, check_commit_count
-from resources import router as resources_router  # 引入资源路由
+from resources import router as resources_router, bg_templates, muyu_templates, hammer_templates, base_templates, sound_templates
 
 # 自动创建数据库表
 models.Base.metadata.create_all(bind=engine)
@@ -118,6 +118,13 @@ def app_login(data: schemas.AppUserLogin, db: Session = Depends(get_db)):
     db.commit()
     level = crud.get_level_by_merit(db, user.merit_count)
     setting = crud.get_user_setting(db, user.id)
+    
+    fish_skin = setting.fish_skin if setting else "default"
+    hammer_skin = setting.hammer_skin if setting else "default"
+    knock_sound = setting.knock_sound if setting else "default"
+    background = setting.background if setting else "default"
+    base_skin = setting.base_skin if setting else "default"
+    
     return {
         "code": 200,
         "msg": "登录成功",
@@ -126,22 +133,23 @@ def app_login(data: schemas.AppUserLogin, db: Session = Depends(get_db)):
             "nickname": user.nickname,
             "avatar": user.avatar,
             "phone": user.phone,
+            "gender": user.gender,
             "meritCount": user.merit_count,
             "levelName": level.level_name if level else "初心者",
             "levelColor": level.color if level else "#9E9E9E",
             "level": level.level if level else 1,
             "settings": {
-                "fishSkin": setting.fish_skin if setting else "default",
-                "hammerSkin": setting.hammer_skin if setting else "default",
-                "knockSound": setting.knock_sound if setting else "default",
-                "background": setting.background if setting else "default",
+                "fishSkin": resolve_skin_value(fish_skin, muyu_templates, "fish_01"),
+                "hammerSkin": resolve_skin_value(hammer_skin, hammer_templates, "hammer_01"),
+                "knockSound": resolve_skin_value(knock_sound, sound_templates, "knock_01"),
+                "background": resolve_skin_value(background, bg_templates, "bg_01"),
                 "volume": setting.volume if setting else 80,
                 "isVibrate": setting.is_vibrate if setting else 1,
                 "autoFreq": setting.auto_freq if setting else 1000,
                 "autoDuration": setting.auto_duration if setting else 0,
-                "knockText": setting.knock_text if setting else "阿弥陀佛",
+                "knockText": setting.knock_text if setting else "功德+1",
                 "isShowBase": setting.is_show_base if setting else 1,
-                "baseSkin": setting.base_skin if setting else "default",
+                "baseSkin": resolve_skin_value(base_skin, base_templates, "base_01"),
             }
         }
     }
@@ -165,6 +173,13 @@ def wechat_login(data: schemas.WechatAuthCode, db: Session = Depends(get_db)):
     db.commit()
     level = crud.get_level_by_merit(db, user.merit_count)
     setting = crud.get_user_setting(db, user.id)
+    
+    fish_skin = setting.fish_skin if setting else "default"
+    hammer_skin = setting.hammer_skin if setting else "default"
+    knock_sound = setting.knock_sound if setting else "default"
+    background = setting.background if setting else "default"
+    base_skin = setting.base_skin if setting else "default"
+    
     return {
         "code": 200,
         "msg": "微信登录成功",
@@ -178,17 +193,17 @@ def wechat_login(data: schemas.WechatAuthCode, db: Session = Depends(get_db)):
             "levelColor": level.color if level else "#9E9E9E",
             "level": level.level if level else 1,
             "settings": {
-                "fishSkin": setting.fish_skin if setting else "default",
-                "hammerSkin": setting.hammer_skin if setting else "default",
-                "knockSound": setting.knock_sound if setting else "default",
-                "background": setting.background if setting else "default",
+                "fishSkin": resolve_skin_value(fish_skin, muyu_templates, "fish_01"),
+                "hammerSkin": resolve_skin_value(hammer_skin, hammer_templates, "hammer_01"),
+                "knockSound": resolve_skin_value(knock_sound, sound_templates, "knock_01"),
+                "background": resolve_skin_value(background, bg_templates, "bg_01"),
                 "volume": setting.volume if setting else 80,
                 "isVibrate": setting.is_vibrate if setting else 1,
                 "autoFreq": setting.auto_freq if setting else 1000,
                 "autoDuration": setting.auto_duration if setting else 0,
-                "knockText": setting.knock_text if setting else "阿弥陀佛",
+                "knockText": setting.knock_text if setting else "功德+1",
                 "isShowBase": setting.is_show_base if setting else 1,
-                "baseSkin": setting.base_skin if setting else "default",
+                "baseSkin": resolve_skin_value(base_skin, base_templates, "base_01"),
             }
         }
     }
@@ -259,6 +274,18 @@ def knock_submit(
 
 
 # -------------------------- 用户信息接口 --------------------------
+def get_default_resource_id(templates, default_fallback):
+    """获取默认资源的ID"""
+    return next((item["id"] for item in templates if item.get("isDefault")), default_fallback)
+
+
+def resolve_skin_value(value, templates, default_fallback):
+    """解析皮肤值：如果是 'default' 则返回默认资源ID，否则返回原值"""
+    if value == "default" or value is None:
+        return get_default_resource_id(templates, default_fallback)
+    return value
+
+
 @app.get("/api/user-info", summary="获取用户信息")
 def get_user_info(
     user: models.User = Depends(get_current_user),
@@ -266,6 +293,13 @@ def get_user_info(
 ):
     level = crud.get_level_by_merit(db, user.merit_count)
     setting = crud.get_user_setting(db, user.id)
+    
+    fish_skin = setting.fish_skin if setting else "default"
+    hammer_skin = setting.hammer_skin if setting else "default"
+    knock_sound = setting.knock_sound if setting else "default"
+    background = setting.background if setting else "default"
+    base_skin = setting.base_skin if setting else "default"
+    
     return {
         "code": 200,
         "msg": "获取成功",
@@ -274,23 +308,24 @@ def get_user_info(
             "nickname": user.nickname,
             "avatar": user.avatar,
             "phone": user.phone,
+            "gender": user.gender,
             "meritCount": user.merit_count,
             "province": user.province,
             "levelName": level.level_name if level else "初心者",
             "levelColor": level.color if level else "#9E9E9E",
             "level": level.level if level else 1,
             "settings": {
-                "fishSkin": setting.fish_skin if setting else "default",
-                "hammerSkin": setting.hammer_skin if setting else "default",
-                "knockSound": setting.knock_sound if setting else "default",
-                "background": setting.background if setting else "default",
+                "fishSkin": resolve_skin_value(fish_skin, muyu_templates, "fish_01"),
+                "hammerSkin": resolve_skin_value(hammer_skin, hammer_templates, "hammer_01"),
+                "knockSound": resolve_skin_value(knock_sound, sound_templates, "knock_01"),
+                "background": resolve_skin_value(background, bg_templates, "bg_01"),
                 "volume": setting.volume if setting else 80,
                 "isVibrate": setting.is_vibrate if setting else 1,
                 "autoFreq": setting.auto_freq if setting else 1000,
                 "autoDuration": setting.auto_duration if setting else 0,
-                "knockText": setting.knock_text if setting else "阿弥陀佛",
+                "knockText": setting.knock_text if setting else "功德+1",
                 "isShowBase": setting.is_show_base if setting else 1,
-                "baseSkin": setting.base_skin if setting else "default",
+                "baseSkin": resolve_skin_value(base_skin, base_templates, "base_01"),
             }
         }
     }
@@ -322,6 +357,77 @@ def save_settings(
             "knockText": setting.knock_text,
             "isShowBase": setting.is_show_base,
             "baseSkin": setting.base_skin,
+        }
+    }
+
+
+# -------------------------- 批量更新个性化配置接口 --------------------------
+@app.post("/api/batch-update-settings", summary="批量更新个性化配置（支持任意字段组合）")
+def batch_update_settings(
+    data: schemas.BatchUpdateSettings,
+    db: Session = Depends(get_db)
+):
+    """批量更新个性化配置，只更新传入的字段"""
+    user = crud.get_user_by_sn(db, data.userSn)
+    if not user:
+        raise HTTPException(status_code=401, detail="用户不存在，请重新登录")
+    validate_and_renew_user(user, db)
+    
+    if not data.settings:
+        return {
+            "code": 200,
+            "msg": "没有需要更新的配置",
+            "data": {}
+        }
+    
+    setting = crud.get_user_setting(db, user.id)
+    if not setting:
+        setting = models.UserSetting(user_id=user.id)
+        db.add(setting)
+    
+    field_map = {
+        'fishSkin': 'fish_skin',
+        'hammerSkin': 'hammer_skin',
+        'knockSound': 'knock_sound',
+        'background': 'background',
+        'volume': 'volume',
+        'isVibrate': 'is_vibrate',
+        'autoFreq': 'auto_freq',
+        'autoDuration': 'auto_duration',
+        'knockText': 'knock_text',
+        'isShowBase': 'is_show_base',
+        'baseSkin': 'base_skin',
+    }
+    
+    updated_fields = []
+    for camel_key, value in data.settings.items():
+        if value is not None and camel_key in field_map:
+            db_field = field_map[camel_key]
+            setattr(setting, db_field, value)
+            updated_fields.append(camel_key)
+    
+    if updated_fields:
+        db.commit()
+        db.refresh(setting)
+    
+    return {
+        "code": 200,
+        "msg": f"成功更新 {len(updated_fields)} 个配置项",
+        "data": {
+            "updatedFields": updated_fields,
+            "settings": {
+                "fishSkin": setting.fish_skin,
+                "hammerSkin": setting.hammer_skin,
+                "knockSound": setting.knock_sound,
+                "background": setting.background,
+                "volume": setting.volume,
+                "isVibrate": setting.is_vibrate,
+                "autoFreq": setting.auto_freq,
+                "autoDuration": setting.auto_duration,
+                "knockText": setting.knock_text,
+                "isShowBase": setting.is_show_base,
+                "baseSkin": setting.base_skin,
+            }
         }
     }
 

@@ -31,7 +31,7 @@ CREATE TABLE IF NOT EXISTS user_settings (
     is_vibrate TINYINT DEFAULT 1 COMMENT '是否震动：1开启，0关闭',
     auto_freq INT DEFAULT 1000 COMMENT '自动敲击频率（毫秒）',
     auto_duration INT DEFAULT 0 COMMENT '自动敲击时长（秒）：0=永久',
-    knock_text VARCHAR(100) DEFAULT '阿弥陀佛' COMMENT '敲击弹出文字',
+    knock_text VARCHAR(100) DEFAULT '功德+1' COMMENT '敲击弹出文字',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP COMMENT '更新时间'
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COMMENT='用户个性化配置表';
